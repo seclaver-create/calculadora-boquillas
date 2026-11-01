@@ -21,32 +21,49 @@ small{color:var(--mu)}
 </style></head><body><main>
 <h1>💧 Calculadora de boquillas</h1>
 <div class="card"><div class="seg"><button id="mB">Barra (herbicida)</button><button id="mA">Atomizador / viña</button></div>
+<label>Calcular</label><div class="seg"><button id="cP">Presión (con velocidad)</button><button id="cV">Velocidad (con presión)</button></div>
 <label>Tipo de boquilla</label><div class="seg"><button id="tE">Estándar abanico</button><button id="tA">Antideriva inyección de aire</button></div>
 <label>Color de boquilla</label><div class="cols" id="cols"></div>
-<div class="row"><div><label>Velocidad (km/h)</label><input id="v" inputmode="decimal"></div><div><label>Caudal (L/ha)</label><input id="l" inputmode="decimal"></div></div>
+<div class="row"><div id="vbox"><label>Velocidad (km/h)</label><input id="v" inputmode="decimal"></div><div id="pbox"><label>Presión fija (bar)</label><input id="pr" inputmode="decimal"></div><div><label>Caudal (L/ha)</label><input id="l" inputmode="decimal"></div></div>
 <div id="bar"><label>Separación entre boquillas (m)</label><input id="s" inputmode="decimal"></div>
 <div id="atm" class="row"><div><label>Ancho de calle (m)</label><input id="w" inputmode="decimal"></div><div><label>Boquillas abiertas</label><input id="n" inputmode="decimal"></div></div></div>
 <div class="card"><div class="big" id="p">–</div><div class="ver" id="vd"></div><div class="sub" id="q"></div><div class="sub" id="rg"></div></div>
-<div class="card"><table><thead><tr><th>Boquilla</th><th>Q a 3 bar</th><th>Presión</th></tr></thead><tbody id="t"></tbody></table></div>
-<p><small>Caudal por boquilla Q = L/ha × km/h × ancho / 600 (en atomizador, dividido entre las boquillas abiertas). Presión P = 3 × (Q / Q₃)², con Q₃ el caudal a 3 bar de las boquillas ISO de abanico plano. Rango ideal: estándar 2–5 bar; antideriva (inyección de aire) 3–8 bar. Los caudales son los ISO por color en ambos tipos.</small></p>
+<div class="card"><table><thead><tr><th>Boquilla</th><th>Q a 3 bar</th><th id="th3">Presión</th></tr></thead><tbody id="t"></tbody></table></div>
+<p><small>Caudal por boquilla Q = L/ha × km/h × ancho / 600 (en atomizador, dividido entre las boquillas abiertas). Presión P = 3 × (Q / Q₃)², con Q₃ el caudal a 3 bar de las boquillas ISO de abanico plano. Rango ideal: estándar 2–5 bar; antideriva (inyección de aire) 3–8 bar. Los caudales son los ISO por color en ambos tipos. Modo velocidad: Q = Q₃ × √(P/3); v = Q × 600 / (L/ha × ancho) (en atomizador, Q × boquillas abiertas). Velocidad razonable 4–10 km/h.</small></p>
 </main><script>
 const C=[["Naranja","01",.4,"#ff8c00"],["Verde","015",.6,"#2e9e44"],["Amarillo","02",.8,"#ffd600"],["Lila","025",1,"#a678d6"],["Azul","03",1.2,"#1e5fd8"],["Rojo","04",1.6,"#d32f2f"],["Marrón","05",2,"#7b4a2a"],["Gris","06",2.4,"#8a8a8a"],["Blanco","08",3.2,"#ffffff"],["Azul claro","10",4,"#7cc8f0"]];
+const R={E:[1.5,2,5,6],A:[2,3,8,10]};
+const pres=(Q,q3)=>3*(Q/q3)**2;
+const vel=(q3,P,l,w,n)=>q3*Math.sqrt(P/3)*n*600/(l*w);
+const pcls=(p,t)=>{const r=R[t];return p>=r[1]&&p<=r[2]?"g":(p>=r[0]&&p<r[1])||(p>r[2]&&p<=r[3])?"a":"r"};
+const vcls=v=>v>=4&&v<=10?"g":"a";
+if(typeof module!="undefined"){module.exports={C,R,pres,vel,pcls,vcls}}else{
 const $=i=>document.getElementById(i),K="cb1";
-let S=Object.assign({t:"E",m:"B",c:2,v:"6",l:"200",s:"0,5",w:"3",n:"10"},JSON.parse(localStorage.getItem(K)||"{}"));
-const num=x=>parseFloat(String(x).replace(",","."));
-const R={E:[1.5,2,5,6],A:[2,3,8,10]};const cls=p=>{const r=R[S.t];return p>=r[1]&&p<=r[2]?"g":(p>=r[0]&&p<r[1])||(p>r[2]&&p<=r[3])?"a":"r"};
+let S=Object.assign({t:"E",m:"B",k:"P",c:2,v:"6",l:"200",s:"0,5",w:"3",n:"10",pr:"3"},JSON.parse(localStorage.getItem(K)||"{}"));
+const num=x=>parseFloat(String(x).replace(",",".")),f2=x=>x.toFixed(2).replace(".",","),f1=x=>x.toFixed(1).replace(".",",");
+const cls=p=>pcls(p,S.t);
 C.forEach((c,i)=>{const b=document.createElement("button");b.innerHTML=`<span class="sw" style="background:${c[3]}"></span>${c[0]}<br>${c[1]}`;b.onclick=()=>{S.c=i;go()};$("cols").appendChild(b)});
-["v","l","s","w","n"].forEach(k=>{$(k).value=S[k];$(k).oninput=()=>{S[k]=$(k).value;go()}});
-$("tE").onclick=()=>{S.t="E";go()};$("tA").onclick=()=>{S.t="A";go()};$("mB").onclick=()=>{S.m="B";go()};$("mA").onclick=()=>{S.m="A";go()};
-function go(){localStorage.setItem(K,JSON.stringify(S));const A=S.m=="A";
-$("tE").className=S.t=="E"?"on":"";$("tA").className=S.t=="A"?"on":"";$("mB").className=A?"":"on";$("mA").className=A?"on":"";$("bar").style.display=A?"none":"";$("atm").style.display=A?"":"none";
+["v","l","s","w","n","pr"].forEach(k=>{$(k).value=S[k];$(k).oninput=()=>{S[k]=$(k).value;go()}});
+$("tE").onclick=()=>{S.t="E";go()};$("tA").onclick=()=>{S.t="A";go()};$("mB").onclick=()=>{S.m="B";go()};$("mA").onclick=()=>{S.m="A";go()};$("cP").onclick=()=>{S.k="P";go()};$("cV").onclick=()=>{S.k="V";go()};
+const sq=c=>`<span style="display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid #0003;background:${c[3]}"></span> ${c[0]} ${c[1]}`;
+function go(){localStorage.setItem(K,JSON.stringify(S));const A=S.m=="A",V=S.k=="V";
+$("tE").className=S.t=="E"?"on":"";$("tA").className=S.t=="A"?"on":"";$("mB").className=A?"":"on";$("mA").className=A?"on":"";$("cP").className=V?"":"on";$("cV").className=V?"on":"";
+$("bar").style.display=A?"none":"";$("atm").style.display=A?"":"none";$("vbox").style.display=V?"none":"";$("pbox").style.display=V?"":"none";$("th3").textContent=V?"Velocidad":"Presión";
 [...$("cols").children].forEach((b,i)=>b.className=i==S.c?"on":"");
-const v=num(S.v),l=num(S.l),w=A?num(S.w):num(S.s),n=A?num(S.n):1,Q=l*v*w/600/n;
-if(!(Q>0)){$("p").textContent="–";$("vd").textContent="Revisa los datos";$("q").textContent="";$("t").innerHTML="";return}
-const P=q3=>3*(Q/q3)**2,p=P(C[S.c][2]),k=cls(p);
-$("p").textContent=p.toFixed(2).replace(".",",")+" bar";$("p").className="big "+k;
-$("vd").className="ver "+k;$("vd").textContent=k=="g"?"Presión ideal":k=="a"?"Aceptable":p<R[S.t][1]?"Presión baja: usa boquilla más pequeña":"Presión alta: usa boquilla más grande";
-const r=R[S.t];$("rg").textContent="Rango ideal ("+(S.t=="E"?"estándar":"antideriva")+"): "+r[1]+"–"+r[2]+" bar";$("q").textContent="Caudal por boquilla: "+Q.toFixed(2).replace(".",",")+" L/min";
-$("t").innerHTML=C.map(c=>{const x=P(c[2]);return `<tr><td><span style="display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid #0003;background:${c[3]}"></span> ${c[0]} ${c[1]}</td><td>${c[2].toFixed(2).replace(".",",")} L/min</td><td class="${cls(x)}">${x.toFixed(2).replace(".",",")} bar</td></tr>`}).join("")}
-go();if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");
+const v=num(S.v),l=num(S.l),w=A?num(S.w):num(S.s),n=A?num(S.n):1,P=num(S.pr),r=R[S.t],tn=S.t=="E"?"estándar":"antideriva";
+if(V){const ok=l>0&&w>0&&n>0&&P>0;if(!ok){$("p").textContent="–";$("vd").textContent="Revisa los datos";$("q").textContent="";$("rg").textContent="";$("t").innerHTML="";return}
+const q3=C[S.c][2],x=vel(q3,P,l,w,n),k=vcls(x),pk=cls(P);
+$("p").textContent=f1(x)+" km/h";$("p").className="big "+k;$("vd").className="ver "+k;
+$("vd").textContent=k=="g"?"Velocidad razonable":x<4?"Velocidad muy baja: usa boquilla más pequeña":"Velocidad muy alta: usa boquilla más grande";
+$("q").textContent="Caudal por boquilla a "+f1(P)+" bar: "+f2(q3*Math.sqrt(P/3))+" L/min";
+$("rg").className="sub "+(pk=="g"?"":pk);$("rg").textContent=(pk=="g"?"Presión dentro del rango ideal ":"⚠ Presión fuera del rango ideal ")+"("+tn+": "+r[1]+"–"+r[2]+" bar)";
+$("t").innerHTML=C.map(c=>{const y=vel(c[2],P,l,w,n);return `<tr><td>${sq(c)}</td><td>${f2(c[2])} L/min</td><td class="${vcls(y)}">${f1(y)} km/h</td></tr>`}).join("");return}
+const Q=l*v*w/600/n;$("rg").className="sub";
+if(!(Q>0)){$("p").textContent="–";$("vd").textContent="Revisa los datos";$("q").textContent="";$("rg").textContent="";$("t").innerHTML="";return}
+const p=pres(Q,C[S.c][2]),k=cls(p);
+$("p").textContent=f2(p)+" bar";$("p").className="big "+k;
+$("vd").className="ver "+k;$("vd").textContent=k=="g"?"Presión ideal":k=="a"?"Aceptable":p<r[1]?"Presión baja: usa boquilla más pequeña":"Presión alta: usa boquilla más grande";
+$("rg").textContent="Rango ideal ("+tn+"): "+r[1]+"–"+r[2]+" bar";$("q").textContent="Caudal por boquilla: "+f2(Q)+" L/min";
+$("t").innerHTML=C.map(c=>{const x=pres(Q,c[2]);return `<tr><td>${sq(c)}</td><td>${f2(c[2])} L/min</td><td class="${cls(x)}">${f2(x)} bar</td></tr>`}).join("")}
+go();if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");}
 </script></body></html>
